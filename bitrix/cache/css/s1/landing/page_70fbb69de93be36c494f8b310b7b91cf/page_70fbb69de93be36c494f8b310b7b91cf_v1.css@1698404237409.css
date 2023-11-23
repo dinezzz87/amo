@@ -1,0 +1,16 @@
+
+
+/* Start:/local/templates/landing/components/bitrix/form.result.new/questions/style.css?1694591088193*/
+.captcha_flex {
+   display: flex;
+    justify-content: space-between;
+    width: 90%;
+    margin: 1em auto;
+    align-items: center;
+}
+.input_captcha {
+    width: 100%;
+    text-align: right;
+}
+/* End */
+/* /local/templates/landing/components/bitrix/form.result.new/questions/style.css?1694591088193 */

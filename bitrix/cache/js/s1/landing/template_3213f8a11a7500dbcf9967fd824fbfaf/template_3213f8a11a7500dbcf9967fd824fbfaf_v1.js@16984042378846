@@ -1,0 +1,302 @@
+
+; /* Start:"a:4:{s:4:"full";s:60:"/local/js/kishps/formsender/src/formsender.js?16934074265995";s:6:"source";s:45:"/local/js/kishps/formsender/src/formsender.js";s:3:"min";s:0:"";s:3:"map";s:0:"";}"*/
+class FormSender {
+
+    data = {};
+    action = '';
+    $form = {};
+    successMessage = '';
+    errorMessage = '';
+    successUrl = '';
+    errorUrl = '';
+    formValid = false;
+
+
+    constructor() {
+        let This = this;
+        $('form[data-action]').submit(function (e) {
+            This.$form = $(this);
+            e.preventDefault();
+            This.formPrepare();
+            if (!This.formValid) {
+                This.showError();
+                return;
+            }
+            This.formAction();
+        });
+
+        
+        $('form input').on('invalid', function () {
+            $(this).css('border', '1px solid red');
+            $(this).parents('form').before(`<style>form input:valid { border: 1px solid silver !important;}</style>`);
+        });
+
+      
+
+    }
+
+    formPrepare() {
+
+
+        let $this = this.$form;
+
+        this.action = $this.data('action');
+        this.successMessage = $this.data('successmessage');
+        this.errorMessage = $this.data('errormessage');
+        this.successUrl = $this.data('successurl');
+        this.errorUrl = $this.data('errorurl');
+        this.fancyNode = $this.data('fancynode');
+
+
+        let formData = $this.serializeArray();
+        let data = {};
+        for (let inp of formData) {
+
+            if (data[inp.name]) {
+                data[inp.name] = [data[inp.name], inp.value];
+            } else {
+                data[inp.name] = inp.value;
+            }
+
+
+            if (inp.value < 0 && this.isRequired(inp.name)) {
+
+                this.notValide(inp.name);
+                this.formValid = false;
+                this.errorMessage = "Заполните обязательные поля";
+            }
+        }
+
+
+
+
+        this.data = data;
+
+
+
+        //console.log('data', data);
+
+        this.formValidation();
+    }
+
+    notValide(name) {
+        let $form = this.$form;
+
+        $form.find(`[name="${name}"]`).css('border-color', 'tomato');
+    }
+
+    isRequired(name) {
+        let $form = this.$form;
+
+        return $form.find(`[name="${name}"]`).prop('required');
+    }
+
+    formValidation() {
+        let $form = this.$form;
+
+        let $password_confirm_input = $form.find('.pass_confirm');
+        let $password_input = $form.find('[name="USER_PASSWORD"]');
+        let password = $password_input.val();
+
+
+
+        if ($password_input.length > 0 && $password_confirm_input.length > 0 && $password_confirm_input.val() != password) {
+
+            this.errorMessage = 'Пароли не совпадают';
+            //this.showError();
+            this.formValid = false;
+            return;
+
+        }
+
+
+
+        this.formValid = true;
+    }
+
+    formAction() {
+        let This = this;
+        let request = BX.ajax.runAction(`astonia:agregator.apiagregator.productfeedback.${this.action}`, {
+            data: {
+                param: this.data
+            }
+        });
+
+        request.then(function (response) {
+
+            This.hideMessages();
+
+console.log('response',response);
+
+            if (response.data.response == 'success' || (response.data.result && response.data.result.status == 'Success')) {
+                This.showSuccess();
+
+                //console.log(response.data);
+
+                switch (This.action) {
+                    case 'login':
+                        location.reload();
+                        break;
+                    /* case 'login':
+                            location.reload();
+                            break; */
+                    default:
+                        break;
+                }
+
+            } else {
+                if (response.data.error)
+                    This.errorMessage = response.data.error;
+
+                if (response.data.result && response.data.result.errorMessage)
+                    This.errorMessage = response.data.result.errorMessage;
+
+
+                if (response.data.data && response.data.data.result && response.data.data.result.validationMessages && response.data.data.result.validationMessages.validationMessage && response.data.data.result.validationMessages.validationMessage.message)
+                    This.errorMessage = response.data.data.result.validationMessages.validationMessage.message;
+
+
+                if (This.errorMessage == 'AuthenticationFailed') {
+                    This.errorMessage = 'Указан неверный пароль';
+                } else if (This.errorMessage == 'NotFound') {
+                    This.errorMessage = 'Такого пользователя не существует';
+                }
+
+                This.showError();
+            }
+            //console.log(response.data);
+
+        });
+    }
+
+    showSuccess() {
+        let $form = this.$form;
+        let successMessage = this.successMessage;
+        let successUrl = this.successUrl;
+        let fancyNode = this.fancyNode;
+
+
+        console.log('successMessage', successMessage);
+        if (successUrl) {
+            location.href = successUrl;
+            //console.log('locationhref', location.href);
+        }  else if (typeof $.fancybox == 'object' && fancyNode) {
+            $.fancybox.open({
+                src: '#'+fancyNode,
+                type: 'inline'
+            });
+            $form.trigger("reset");
+        } else if (successMessage) {
+            $form.html('');
+            $form.prepend(`<div class="alert alert-success" role="alert">${successMessage}</div>`);
+
+        }
+    }
+
+
+    showError() {
+        let $form = this.$form;
+        let errorMessage = this.errorMessage;
+        let errorUrl = this.errorUrl;
+
+        if (errorUrl) {
+            location.href = errorUrl;
+        } else if (errorMessage) {
+            //$form.html('');
+            $form.prepend(`<div class="alert alert-danger" role="alert">${errorMessage}</div>`);
+
+        }
+    }
+
+    hideMessages() {
+        $('.errorMessage').remove();
+        $('.successMessage').remove();
+    }
+
+
+
+
+}
+
+
+$(document).ready(function () {
+    new FormSender();
+    console.log('FormSender load');
+});
+
+/* End */
+;
+; /* Start:"a:4:{s:4:"full";s:52:"/local/templates/landing/js/script.js?16934074262311";s:6:"source";s:37:"/local/templates/landing/js/script.js";s:3:"min";s:0:"";s:3:"map";s:0:"";}"*/
+// БУРГЕР МОБИЛЬНОЙ ВЕРСИИ
+
+    document.querySelector('.header__burger').addEventListener('click', function(){
+        this.classList.toggle('active');
+        document.querySelector('.header__menu').classList.toggle('open');
+        document.querySelector('.header__phone-icons').classList.toggle('open');
+        document.querySelector('.header__body').classList.toggle('h100');
+        
+    })
+
+    let elements = document.querySelectorAll('.header__link');
+    for (let item of elements) {
+        item.addEventListener('click', function() {
+            document.querySelector('.header__burger').classList.remove('active');
+            document.querySelector('.header__menu').classList.remove('open');
+            document.querySelector('.header__phone-icons').classList.remove('open');
+            document.querySelector('.header__body').classList.remove('h100');
+            
+        })
+    }
+
+   
+
+
+// КНОПКА НАВЕРХ
+window.addEventListener('scroll', function(){
+let scroll = document.querySelector('.upward');
+scroll.classList.toggle('active',window.scrollY>500);
+})
+
+document.querySelector('.upward').addEventListener('click', function(){
+    window.scrollTo({top:0, behavior:'smooth' })
+})
+
+
+
+
+
+// ПОДРОБНЕЙ О МОДЕЛИ
+document.getElementById('description-button-1').addEventListener('click', function () {toggleMe ('description-1');});
+document.getElementById('description-button-2').addEventListener('click', function () {toggleMe ('description-2');});
+
+ function toggleMe (containerId) {
+    let container = document.getElementById(containerId);    
+    container.style = ' transition: height .25s ease; overflow: hidden;';
+    
+    if (!container.classList.contains('active')) {
+        container.classList.add('active');
+        container.style.height = 'auto';
+
+        let height = container.clientHeight + "px";
+
+        container.style.height = '0px';
+
+        setTimeout(function () {
+            container.style.height = height;
+        }, 0);
+    } else {
+        container.style.height = '0px';
+
+        container.addEventListener('transitionend', function () {
+            container.classList.remove('active');
+        }, {
+            once: true
+        });
+    }
+
+ };
+
+
+/* End */
+;; /* /local/js/kishps/formsender/src/formsender.js?16934074265995*/
+; /* /local/templates/landing/js/script.js?16934074262311*/
